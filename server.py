@@ -9,10 +9,18 @@ from _thread import *
 
 
 
+def broadcast_message(message, sender, clients):
+    for connection in clients:
+        if connection != sender:
+            try:
+                connection.send(message.encode("utf-8"))
+            except:
+                connection.close()
+                clients.remove(connection)
 
 
 
-def client_thread(client_socket, client_address,server_ip, port, server_passcode, clients):
+def client_thread(client_socket, client_address,server_ip, port, server_passcode, clients, lock):
     new_user = True
 
     while True:
@@ -23,7 +31,7 @@ def client_thread(client_socket, client_address,server_ip, port, server_passcode
         if request and not new_user:
             print(f"{request}")
             sys.stdout.flush()
-            #code to broadcast message
+            broadcast_message(request, client_socket, clients)
 
         if not request:
             continue
@@ -36,7 +44,7 @@ def client_thread(client_socket, client_address,server_ip, port, server_passcode
             if pw == server_passcode:
                 print(f"{username} joined the chatroom")
                 sys.stdout.flush()
-                #code to broadcast messages to all clients
+                broadcast_message(request, client_socket, clients)
                 response = f"Connected to {server_ip} on port {port}".encode("utf-8")
                 client_socket.send(response)
                 new_user = False
@@ -44,6 +52,9 @@ def client_thread(client_socket, client_address,server_ip, port, server_passcode
                 response = f"Incorrect passcode".encode("utf-8")
                 client_socket.send(response)
                 client_socket.close()
+                with lock:
+                    clients.remove(client_socket)
+
 
     client_socket.close()
 
@@ -76,6 +87,8 @@ def create_socket():
     parser.add_argument('-passcode', '--passcode', help="Enter passcode")
     #parse command line arguments
     args = parser.parse_args()
+    lock = threading.Lock()
+
     try:
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.bind((server_ip, port))
@@ -91,7 +104,7 @@ def create_socket():
     while True:
         client_socket, client_address = server_socket.accept()
         clients.append(client_socket)
-        threading.Thread(target=client_thread, args=(client_socket, client_address, server_ip, port, server_passcode, clients)).start()
+        threading.Thread(target=client_thread, args=(client_socket, client_address, server_ip, port, server_passcode, clients, lock)).start()
 
     server_socket.close()
 
