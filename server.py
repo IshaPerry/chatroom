@@ -25,16 +25,14 @@ def client_thread(client_socket, client_address,server_ip, port, server_passcode
 
     while True:
         request = client_socket.recv(1024)
-        request = request.decode("utf-8") # convert bytes to string
-
+        request = request.decode("utf-8")
 
         if request and not new_user:
             print(f"{request}")
             sys.stdout.flush()
             broadcast_message(request, client_socket, clients)
 
-        if not request:
-            continue
+
 
         if new_user:
             clients.append(client_socket)
@@ -44,7 +42,7 @@ def client_thread(client_socket, client_address,server_ip, port, server_passcode
             if pw == server_passcode:
                 print(f"{username} joined the chatroom")
                 sys.stdout.flush()
-                broadcast_message(request, client_socket, clients)
+                broadcast_message(f"{username} joined the chatroom", client_socket, clients)
                 response = f"Connected to {server_ip} on port {port}".encode("utf-8")
                 client_socket.send(response)
                 new_user = False
@@ -68,10 +66,6 @@ def create_socket():
 
     server_ip = "127.0.0.1"
 
-    # Command-line arguments
-    start_server = True
-    port = None
-    server_passcode = None
 
 
     #TCP socket server
@@ -89,6 +83,11 @@ def create_socket():
     args = parser.parse_args()
     lock = threading.Lock()
 
+    # Command-line arguments
+    port = int(args.port)
+    server_passcode = args.passcode
+
+
     try:
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.bind((server_ip, port))
@@ -103,7 +102,6 @@ def create_socket():
 
     while True:
         client_socket, client_address = server_socket.accept()
-        clients.append(client_socket)
         threading.Thread(target=client_thread, args=(client_socket, client_address, server_ip, port, server_passcode, clients, lock)).start()
 
     server_socket.close()
