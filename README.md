@@ -22,6 +22,8 @@ Uses Text parsing to develop a custom application layer protocol
   
   e. Type :Exit to close your connection and terminate the client
 
+## Usage Example
+
 ![Screenshot](example.png)
 
 
